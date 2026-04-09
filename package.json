@@ -1,0 +1,19 @@
+{
+  "name": "project-os",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.19.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start:agent": "pnpm --filter local-agent dev",
+    "start:web": "pnpm --filter web dev",
+    "start:all": "concurrently \"pnpm start:web\" \"pnpm start:agent\"",
+    "setup": "bash scripts/setup.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "concurrently": "^8.2.0",
+    "typescript": "^5.4.0"
+  }
+}

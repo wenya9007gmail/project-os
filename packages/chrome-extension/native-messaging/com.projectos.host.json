@@ -1,0 +1,9 @@
+{
+  "name": "com.projectos.host",
+  "description": "Project OS Native Messaging Host — 桥接 Chrome 扩展与本地 Local Agent",
+  "path": "/Users/wenya/Desktop/project-os/packages/chrome-extension/native-messaging/host.js",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://REPLACE_WITH_EXTENSION_ID/"
+  ]
+}

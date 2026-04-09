@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --primary: 222 47% 20%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 222 47% 20%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 10%;
+    --card-foreground: 213 31% 91%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --primary: 213 31% 91%;
+    --primary-foreground: 222 47% 7%;
+    --secondary: 222 47% 15%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 223 47% 14%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 213 31% 91%;
+    --ring: 216 34% 17%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+}
+
+/* Prose styles for Markdown rendering */
+.prose-sm p { @apply mb-3 leading-relaxed; }
+.prose-sm h1, .prose-sm h2, .prose-sm h3 { @apply font-semibold mt-4 mb-2; }
+.prose-sm ul, .prose-sm ol { @apply ml-4 mb-3; }
+.prose-sm li { @apply mb-1; }
+.prose-sm code { @apply bg-muted px-1 py-0.5 rounded text-xs font-mono; }
+.prose-sm pre { @apply bg-muted p-3 rounded-md overflow-x-auto my-3; }
+.prose-sm table { @apply w-full border-collapse my-3; }
+.prose-sm th, .prose-sm td { @apply border border-border px-3 py-2 text-sm; }
+.prose-sm th { @apply bg-muted font-semibold; }

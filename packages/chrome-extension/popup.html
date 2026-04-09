@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Project OS 采集助手</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { width: 340px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; color: #111; background: #fff; }
+
+    .header { padding: 12px 16px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; }
+    .header h1 { font-size: 14px; font-weight: 700; flex: 1; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+    .dot.on { background: #22c55e; } .dot.off { background: #ef4444; }
+    .dot-label { font-size: 11px; color: #888; }
+
+    .page-info { padding: 10px 16px; background: #f9f9f9; border-bottom: 1px solid #eee; }
+    .page-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .page-url { font-size: 11px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+    .body { padding: 14px 16px; }
+    .label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+
+    .mode-tabs { display: flex; gap: 0; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+    .mode-tab { flex: 1; padding: 7px 4px; text-align: center; font-size: 12px; font-weight: 500; cursor: pointer; color: #666; background: #fff; border: none; transition: all .15s; }
+    .mode-tab.active { background: #111; color: #fff; }
+
+    .select-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+    .project-select { flex: 1; border: 1px solid #e5e5e5; border-radius: 8px; padding: 8px 10px; font-size: 12px; color: #111; background: #fff; outline: none; }
+    .project-select:focus { border-color: #111; }
+
+    .btn-pin { border: 1px solid #e5e5e5; border-radius: 8px; padding: 7px 10px; font-size: 11px; font-weight: 600; cursor: pointer; background: #fff; color: #555; white-space: nowrap; transition: all .15s; }
+    .btn-pin:hover { border-color: #111; color: #111; }
+    .btn-pin.pinned { background: #111; color: #fff; border-color: #111; }
+
+    .pinned-badge { display: none; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 500; margin-bottom: 8px; }
+
+    .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .15s; }
+    .btn:hover { opacity: .85; } .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: #111; color: #fff; }
+
+    .result { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 12px; }
+    .result.ok { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .result.err { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .result a { color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+    .footer { padding: 10px 16px; border-top: 1px solid #eee; }
+    .btn-sm { padding: 7px; font-size: 12px; font-weight: 500; background: transparent; border: 1px solid #e5e5e5; color: #555; border-radius: 8px; width: 100%; cursor: pointer; }
+    .btn-sm:hover { border-color: #111; }
+
+    .task-item { border: 1px solid #eee; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; transition: border-color .15s; }
+    .task-item:hover { border-color: #999; }
+    .task-item.selected { border-color: #111; background: #f9f9f9; }
+    .task-url { font-size: 11px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-meta { font-size: 11px; color: #aaa; margin-top: 2px; }
+    .empty { text-align: center; color: #bbb; padding: 12px 0; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="dot" id="dot"></div>
+    <h1>Project OS 采集</h1>
+    <span class="dot-label" id="dot-label">检查中...</span>
+  </div>
+
+  <div class="page-info">
+    <div class="page-title" id="page-title">加载中...</div>
+    <div class="page-url" id="page-url"></div>
+  </div>
+
+  <div class="body">
+    <div class="label">采集模式</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-new">📄 新建项目</button>
+      <button class="mode-tab" id="tab-add">➕ 添加到项目</button>
+      <button class="mode-tab" id="tab-tasks">📋 任务队列</button>
+    </div>
+
+    <!-- 新建项目模式 -->
+    <div id="panel-new">
+      <p style="font-size:12px;color:#666;margin-bottom:12px;">采集当前页面内容（含图片链接），AI 自动提取项目信息并创建新项目。</p>
+      <button class="btn btn-primary" id="btn-new">🚀 采集并创建项目</button>
+    </div>
+
+    <!-- 添加到项目模式 -->
+    <div id="panel-add" style="display:none">
+      <div id="pinned-badge" class="pinned-badge"></div>
+      <div class="select-row">
+        <select class="project-select" id="project-select">
+          <option value="">— 选择项目 —</option>
+        </select>
+        <button class="btn-pin" id="btn-pin">📌 固定</button>
+      </div>
+      <button class="btn btn-primary" id="btn-add" disabled>📎 采集并添加到项目</button>
+    </div>
+
+    <!-- 任务队列模式 -->
+    <div id="panel-tasks" style="display:none">
+      <div id="task-list"><div class="empty">加载中...</div></div>
+      <button class="btn btn-primary" id="btn-task" disabled style="margin-top:8px;">采集选中任务页面</button>
+    </div>
+
+    <div id="result" style="display:none" class="result"></div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-sm" id="btn-open">打开 Project OS ↗</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

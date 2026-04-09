@@ -1,0 +1,82 @@
+##############################################################
+# paperclip-sync.yml
+#
+# 当 PR 被 opened / merged / closed 时：
+#   1. 更新 Paperclip Issue 状态（通过 Issue identifier CMP-N）
+#   2. 将变更摘要归档到 Project OS 知识库
+#
+# 需要在 GitHub Repo → Settings → Secrets and variables → Actions 配置：
+#
+#   PAPERCLIP_API_KEY   — Paperclip → Settings → API Keys 生成
+#   PAPERCLIP_COMPANY   — Paperclip 公司 slug（URL 里的那段，如 "jiu-bai-wan"）
+#   PROJECT_OS_URL      — Project OS 部署地址（如 http://localhost:3002 或线上地址）
+#   PROJECT_OS_SECRET   — 与 .env.local 里 LOCAL_AGENT_SECRET 一致
+##############################################################
+
+name: Paperclip & Project OS Sync
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, merged, closed]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # ── 1. 从 PR body 提取 CMP-N identifier ──────────────────────
+      - name: Extract Paperclip Issue ID
+        id: extract
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          CMP_ID=$(echo "$PR_BODY" | grep -oE 'CMP-[0-9]+' | head -1)
+          echo "cmp_id=$CMP_ID" >> $GITHUB_OUTPUT
+          echo "Found Paperclip Issue: $CMP_ID"
+
+      # ── 2. 映射 PR 状态 → Paperclip Issue 状态 ───────────────────
+      - name: Determine status
+        id: status
+        run: |
+          EVENT="${{ github.event.action }}"
+          MERGED="${{ github.event.pull_request.merged }}"
+          if [ "$EVENT" = "opened" ] || [ "$EVENT" = "ready_for_review" ]; then
+            echo "paperclip_status=in_review"   >> $GITHUB_OUTPUT
+            echo "pr_status=opened"             >> $GITHUB_OUTPUT
+          elif [ "$MERGED" = "true" ]; then
+            echo "paperclip_status=done"        >> $GITHUB_OUTPUT
+            echo "pr_status=merged"             >> $GITHUB_OUTPUT
+          else
+            echo "paperclip_status=blocked"     >> $GITHUB_OUTPUT
+            echo "pr_status=closed"             >> $GITHUB_OUTPUT
+          fi
+
+      # ── 3. 更新 Paperclip Issue 状态 ─────────────────────────────
+      - name: Update Paperclip Issue
+        if: steps.extract.outputs.cmp_id != ''
+        run: |
+          curl -s -X PATCH \
+            "https://api.paperclip.ing/v1/companies/${{ secrets.PAPERCLIP_COMPANY }}/issues/${{ steps.extract.outputs.cmp_id }}" \
+            -H "Authorization: Bearer ${{ secrets.PAPERCLIP_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "status": "${{ steps.status.outputs.paperclip_status }}",
+              "comment": "PR #${{ github.event.pull_request.number }} ${{ steps.status.outputs.pr_status }}: ${{ github.event.pull_request.html_url }}"
+            }'
+
+      # ── 4. 归档到 Project OS 知识库 ───────────────────────────────
+      - name: Archive to Project OS
+        if: steps.status.outputs.pr_status == 'merged'
+        run: |
+          curl -s -X POST \
+            "${{ secrets.PROJECT_OS_URL }}/api/knowledge/ingest" \
+            -H "Authorization: Bearer ${{ secrets.PROJECT_OS_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "source": "github_pr",
+              "title": "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}",
+              "content": "${{ github.event.pull_request.body }}",
+              "url": "${{ github.event.pull_request.html_url }}",
+              "prNumber": ${{ github.event.pull_request.number }},
+              "prStatus": "merged",
+              "paperclipIssueId": "${{ steps.extract.outputs.cmp_id }}",
+              "tags": ["github_pr", "merged"]
+            }'
